@@ -553,11 +553,19 @@ var fittsTest = {
 	},
   
   downloadDataSet: function(num) {
-    console.log($('#plot-positions')[0].children[0]);
-    //~ saveSvgAsPng($('#plot-positions')[0].children[0], 'test.png', 1);
-    //~ return;
-    var data_id = $("input[type='radio'][name='data_id']:checked").val();
-    switch(data_id) {
+    downloadAsJson('dataset_' + num, 'raw', JSON.stringify(this.data[num]));
+    downloadAsText('dataset_' + num, 'positions', JSON.stringify(plotPositionData));
+    downloadAsText('dataset_' + num, 'velocities', JSON.stringify(plotVelocitiesData));
+    downloadAsText('dataset_' + num, 'hits', JSON.stringify(plotHitsData));
+    downloadAsText('dataset_' + num, 'scatter', JSON.stringify(scatterData));
+    downloadAsText('dataset_' + num, 'scatter_effective', JSON.stringify(scatterEffectiveData));
+    downloadAsText('dataset_' + num, 'throughput', JSON.stringify(throughputData));
+    downloadAsText('dataset_' + num, 'position_effective', JSON.stringify(positionEffectiveData));
+    downloadAsText('dataset_' + num, 'speed_effective', JSON.stringify(speedEffectiveData));
+    
+    // var data_id = $("input[type='radio'][name='data_id']:checked").val();
+    /*
+      switch(data_id) {
       case 'raw':
         downloadAsJson(
             'dataset_' + num, data_id, JSON.stringify(this.data[num]));
@@ -595,6 +603,7 @@ var fittsTest = {
             'dataset_' + num, data_id, JSON.stringify(speedEffectiveData));
         break;
     }
+    */
 	},
 	
   downloadDataSets: function() {
