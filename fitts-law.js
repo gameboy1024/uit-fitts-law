@@ -1,5 +1,6 @@
 "use strict";
 
+// Preset Parameters
 var presetParams = [
   [120, 20],
   [120, 40],
@@ -436,7 +437,8 @@ var fittsTest = {
 	},
   
   getPresetParams: function() {
-    ++presetParamsIndex;
+    presetParamsIndex = (presetParamsIndex + 1) % presetParams.length;
+    
     this.isoParams.distance = presetParams[presetParamsIndex][0]
 		this.isoParams.width = presetParams[presetParamsIndex][1]
 
