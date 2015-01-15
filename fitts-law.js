@@ -1,5 +1,6 @@
 "use strict";
 
+// Preset Parameters
 var presetParams = [
   [120, 20],
   [120, 40],
