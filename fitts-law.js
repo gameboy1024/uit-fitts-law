@@ -437,6 +437,10 @@ var fittsTest = {
   
   getPresetParams: function() {
     ++presetParamsIndex;
+    if (presetParamsIndex == presetParams.length) {
+      alert("Vous avez fini cette partie!");
+      this.downloadDataSets();
+    }
     this.isoParams.distance = presetParams[presetParamsIndex][0]
 		this.isoParams.width = presetParams[presetParamsIndex][1]
 
