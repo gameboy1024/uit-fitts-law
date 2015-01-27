@@ -10,8 +10,9 @@ var presetParams = [
   [450, 20],
   [450, 50],
   [450, 80]]
-
 var presetParamsIndex = 0;
+var presetOrder = [2, 5, 1, 8, 7, 3, 6, 4, 0];
+var presetOrderIndex = 0;
 
 /**
  * Create dimensions from the given values and store them for later use.
@@ -140,9 +141,13 @@ var fittsTest = {
 	updateTimeoutHandle: undefined,
 	
 	generateTarget: function() {
+		// console.log("generateTarget");
+		
+		this.currentPosition = this.getNextPosition(false);
 		this.target = this.isoPositions[this.currentPosition];
 		this.target.distance = this.isoParams.distance;
-		this.currentPosition = (this.currentPosition + Math.ceil(this.isoPositions.length/2)) % this.isoPositions.length;
+		// This original version always use the point in face of the current one. 
+		// this.currentPosition = (this.currentPosition + Math.ceil(this.isoPositions.length/2)) % this.isoPositions.length;
 		
 		var target = testAreaSVG.selectAll('#target').data([this.target]);
 		
@@ -166,6 +171,7 @@ var fittsTest = {
 	},
 	
 	updateISOCircles: function() {
+		// console.log("updateISOCircles");
 		this.currentCount = 0;
 		
 		this.generateISOPositions(this.isoParams.num,
@@ -192,14 +198,22 @@ var fittsTest = {
 			.transition()
 				.attr('r', 0)
 				.remove();
-				
-		this.currentPosition = 0;
 		this.generateTarget();
 		this.active = false;
-},
+	},
+
+	getNextPosition: function (resetNextPositionIndex) {
+		if (resetNextPositionIndex || !this.positionBase) {
+			this.positionBase = (Math.random() * 1000 | 0) % this.isoPositions.length;
+			this.presetOrderIndex = 0;
+		}
+		if (this.presetOrderIndex == this.isoPositions.length)
+			return 0;
+		return (this.positionBase + presetOrder[this.presetOrderIndex++]) % this.isoPositions.length;
+	},
 	
 	generateISOPositions: function(num, d, w) {
-    console.log('generateISOPositions');
+    // console.log('generateISOPositions');
 		
 		// remove all data from live view
 		plotHitsGroup.selectAll('circle.hit')
@@ -242,8 +256,8 @@ var fittsTest = {
 	},
 	
 	mouseClicked: function(x, y) {
-    //console.log('mouseClicked');
-		
+    	// console.log('mouseClicked');
+		// If it's a correct click.
 		if (distance({x: x, y: y}, this.target) < (this.target.w / 2)) {
 			this.addDataPoint({start: this.start,
 							   target: this.target,
@@ -252,37 +266,38 @@ var fittsTest = {
 			this.removeTarget();
 
 			if (this.currentCount >= this.isoPositions.length) {
-        if (this.isoParams.randomize) {
-          this.randomizeParams();
-        } else {
-          this.getPresetParams();
-          fittsTest.addDataSet();
-        }
+				// Add missed data
+				missedData.push([this.miss]);
+				// If random is chosen, use radomized params.
+				// If not, get the next preset params and add a new data set.
+		        if (this.isoParams.randomize) {
+		          this.randomizeParams();
+		        } else {
+		          this.getPresetParams();
+		          fittsTest.addDataSet();
+		        }
 				this.currentCount = 0;
-				this.currentPosition = 0;
+				this.currentPosition = this.getNextPosition(true);
 				this.miss = 0;
 				this.updateISOCircles;
 				this.generateTarget();
 				this.active = false;
-			}
-			else {
+			} else {
 				this.currentCount++;
 				this.generateTarget();			
 			}
 
-			
 			this.last = {x: x, y: y, t: (new Date).getTime()};
 			this.start = this.last;
 			this.currentPath.push(this.last);
-		}
-		else {
+		} else {
 			this.miss++;
 		}
 	},
 	
 	mouseMoved: function(x, y) {
-    console.log('mouseMoved');
-		if (this.active) {
+    	// console.log('mouseMoved');
+		if (this.active) { 
 			// skip if the mouse did actually not move
 			// that should practically never happen...
 			if (x == this.last.x && y == this.last.y) {
@@ -323,7 +338,7 @@ var fittsTest = {
 	},
 	
 	addDataPoint: function(data) {
-    console.log('addDataPoint');
+    	// console.log('addDataPoint');
     
 		// add point to data array for plotting into ID/time scatter plot
 		if (this.active == false)
@@ -331,8 +346,9 @@ var fittsTest = {
 
 		var dt = data.hit.t - data.start.t;
 	
-		if (dt < MAX_TIME)  // skip if obvious outlier
-		{
+		// The test must be continued
+		// if (dt < MAX_TIME)  // skip if obvious outlier
+		if (true) {
 			var dist = distance(data.target, data.start);
 			var id = shannon(dist, data.target.w);
 
@@ -349,31 +365,32 @@ var fittsTest = {
 						.duration(200)
 						.ease('bounce')
 						.attr('r', 3);
-      scatterData.push([id, dt]);
-		
-			var A = data.start;
-			var B = data.target;
-			var path = data.path;
-		
-			var hit = {}
-			var q = project(A, B, data.hit);
-			hit.x = distance(q, B) * sign(q.t - 1);
-			hit.y = distance(q, data.hit) * isLeft(A, B, data.hit);
-		
-		
-			plotHitsGroup.append('circle')
-				.attr('class', 'hit')
-				.attr('cx', rHit(hit.x, data.target.w / 2))
-				.attr('cy', rHit(hit.y, data.target.w / 2))
-				.attr('r', 6)
-				.style('fill', 'red')
-				.style('opacity', 1)
-				.transition()
-					.duration(500)
-						.ease('linear')
-						.attr('r', 3);
-      plotHitsData.push([hit.x, hit.y]);
-		
+
+	      	scatterData.push([id, dt]);
+			
+				var A = data.start;
+				var B = data.target;
+				var path = data.path;
+			
+				var hit = {}
+				var q = project(A, B, data.hit);
+				hit.x = distance(q, B) * sign(q.t - 1);
+				hit.y = distance(q, data.hit) * isLeft(A, B, data.hit);
+			
+			
+				plotHitsGroup.append('circle')
+					.attr('class', 'hit')
+					.attr('cx', rHit(hit.x, data.target.w / 2))
+					.attr('cy', rHit(hit.y, data.target.w / 2))
+					.attr('r', 6)
+					.style('fill', 'red')
+					.style('opacity', 1)
+					.transition()
+						.duration(500)
+							.ease('linear')
+							.attr('r', 3);
+	      	plotHitsData.push([hit.x, hit.y]);
+			
 			var last = { x: 0, y: 0, t: data.start.t, v: 0};
 			for (var i = 0; i < path.length; i++) {
 				var p = path[i];
@@ -400,8 +417,8 @@ var fittsTest = {
 						.duration(LIVE_STAY)
 						.style('stroke-opacity', 0.5);
         
-        plotPositionData.push([x, y]);
-			
+		        plotPositionData.push([x, y]);
+					
 				plotVelocitiesGroup.append('svg:line')
 					.attr('class', 'live')
 					.attr('x1', scaleT(last.t - data.start.t))
@@ -413,14 +430,14 @@ var fittsTest = {
 					.transition()
 						.duration(LIVE_STAY)
 						.style('stroke-opacity', 0.5);
-        plotVelocitiesData.push([p.t - data.start.t, speed]);
-        
-				var last = {}
-				last.x = x;
-				last.y = y;
-				last.t = p.t;
-				last.v = speed;
-			}
+		        plotVelocitiesData.push([p.t - data.start.t, speed]);
+	        
+					var last = {}
+					last.x = x;
+					last.y = y;
+					last.t = p.t;
+					last.v = speed;
+			}			
 		}
 	},
 	
@@ -441,16 +458,17 @@ var fittsTest = {
     if (presetParamsIndex == presetParams.length) {
       alert("Vous avez fini cette partie!");
       this.downloadDataSets();
+      return;
     }
-    this.isoParams.distance = presetParams[presetParamsIndex][0]
-		this.isoParams.width = presetParams[presetParamsIndex][1]
+    this.isoParams.distance = presetParams[presetParamsIndex][0];
+	this.isoParams.width = presetParams[presetParamsIndex][1];
 
-		$('#sliderDistance').slider('value', this.isoParams.distance);
-		$('#sliderWidth').slider('value', this.isoParams.width);
+	$('#sliderDistance').slider('value', this.isoParams.distance);
+	$('#sliderWidth').slider('value', this.isoParams.width);
 
-		this.updateISOCircles();
-		d3.select('#sliderDistanceValue').text(this.isoParams.distance);
-		d3.select('#sliderWidthValue').text(this.isoParams.width);
+	this.updateISOCircles();
+	d3.select('#sliderDistanceValue').text(this.isoParams.distance);
+	d3.select('#sliderWidthValue').text(this.isoParams.width);
   },
 	
 	addDataSet: function() {
@@ -505,7 +523,7 @@ var fittsTest = {
 			
 		this.highlightDataSet(num);
 		// add colour
-		console.log(this.data[num]);
+		// console.log(this.data[num]);
 	},
 	
 	deleteDataSet: function(num) {
@@ -567,6 +585,7 @@ var fittsTest = {
     downloadAsText('dataset_' + num, 'throughput', JSON.stringify(throughputData));
     downloadAsText('dataset_' + num, 'position_effective', JSON.stringify(positionEffectiveData));
     downloadAsText('dataset_' + num, 'speed_effective', JSON.stringify(speedEffectiveData));
+    downloadAsText('dataset_' + num, 'missed', JSON.stringify(missedData));
     
     // var data_id = $("input[type='radio'][name='data_id']:checked").val();
     /*
@@ -1057,6 +1076,9 @@ var testAreaSVG = d3.select('#test-area').append('svg')
 	.on('mousedown', mouseClicked)
 	.call(bgRect, testDimension); 
 
+// Missed data
+var missedData = [];
+
 var plotPositionSVG = d3.select('#plot-positions').append('svg')
 	.attr('width', plotPositionDimension.width)
 	.attr('height', plotPositionDimension.height)
@@ -1192,8 +1214,6 @@ scatterGroup.append("g")
 		// 	.attr('y', 65)
 		// 	.attr('transform', 'rotate(-90, -20, 80)')
 		// 	.style('text-anchor', 'middle');
-
-var scatterData = [];
 
 
 var scatterEffectiveSVG = d3.select('#scatterEffective').append('svg')
