@@ -11,14 +11,14 @@ var presetParams = [
   [450, 50],
   [450, 80]]
 var presetParamsIndex = 0;
-var presetOrder = [2, 5, 1, 8, 7, 3, 6, 4, 0];
+var presetOrder = [2, 5, 1, 8, 7, 3, 6, 4, 0, 2];
 var presetOrderIndex = 0;
 
 /**
  * Create dimensions from the given values and store them for later use.
  * All values should be positive and make sense.
  * @param {number} width The outer width of the area.
- * @param {number} height The outer height of the area.
+ * @param {number} height The outer height of the area.presetOrderIndex
  * @param {number} top Margin form the top edge.
  * @param {number} right Margin form the right edge.
  * @param {number} bottom Margin form the bottom edge.
@@ -207,7 +207,7 @@ var fittsTest = {
 			this.positionBase = (Math.random() * 1000 | 0) % this.isoPositions.length;
 			this.presetOrderIndex = 0;
 		}
-		if (this.presetOrderIndex == this.isoPositions.length)
+		if (this.presetOrderIndex > this.isoPositions.length)
 			return 0;
 		return (this.positionBase + presetOrder[this.presetOrderIndex++]) % this.isoPositions.length;
 	},
@@ -305,10 +305,10 @@ var fittsTest = {
 			}
 			
 			// set timeout for updating plots
-			if (this.updateTimeoutHandle) {
-				window.clearTimeout(this.updateTimeoutHandle);
-			}
-			this.updateTimeoutHandle = window.setTimeout(this.updatePlots, UPDATE_DELAY, this);
+			// if (this.updateTimeoutHandle) {
+				// window.clearTimeout(this.updateTimeoutHandle);
+			// }
+			// this.updateTimeoutHandle = window.setTimeout(this.updatePlots, UPDATE_DELAY, this);
 			
 			
 			var newPoint = {x: x, y: y, t: (new Date).getTime()}
@@ -474,7 +474,7 @@ var fittsTest = {
 	addDataSet: function() {
 		
 		// first update the plots
-		this.updatePlots(this);
+		// this.updatePlots(this);
 		
 		this.dataCnt++;
 		var num = this.dataCnt;
@@ -581,59 +581,22 @@ var fittsTest = {
     downloadAsText('dataset_' + num, 'velocities', JSON.stringify(plotVelocitiesData));
     downloadAsText('dataset_' + num, 'hits', JSON.stringify(plotHitsData));
     downloadAsText('dataset_' + num, 'scatter', JSON.stringify(scatterData));
-    downloadAsText('dataset_' + num, 'scatter_effective', JSON.stringify(scatterEffectiveData));
-    downloadAsText('dataset_' + num, 'throughput', JSON.stringify(throughputData));
-    downloadAsText('dataset_' + num, 'position_effective', JSON.stringify(positionEffectiveData));
-    downloadAsText('dataset_' + num, 'speed_effective', JSON.stringify(speedEffectiveData));
+    // downloadAsText('dataset_' + num, 'scatter_effective', JSON.stringify(scatterEffectiveData));
+    // downloadAsText('dataset_' + num, 'throughput', JSON.stringify(throughputData));
+    // downloadAsText('dataset_' + num, 'position_effective', JSON.stringify(positionEffectiveData));
+    // downloadAsText('dataset_' + num, 'speed_effective', JSON.stringify(speedEffectiveData));
     downloadAsText('dataset_' + num, 'missed', JSON.stringify(missedData));
-    
-    // var data_id = $("input[type='radio'][name='data_id']:checked").val();
-    /*
-      switch(data_id) {
-      case 'raw':
-        downloadAsJson(
-            'dataset_' + num, data_id, JSON.stringify(this.data[num]));
-        break;
-      case 'positions':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(plotPositionData));
-        break;
-      case 'velocities':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(plotVelocitiesData));
-        break;
-      case 'hits':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(plotHitsData));
-        break;
-      case 'scatter':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(scatterData));
-        break;
-      case 'scatter_effective':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(scatterEffectiveData));
-        break;
-      case 'throughput':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(throughputData));
-        break;
-      case 'position_effective':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(positionEffectiveData));
-        break;
-      case 'speed_effective':
-        downloadAsText(
-            'dataset_' + num, data_id, JSON.stringify(speedEffectiveData));
-        break;
-    }
-    */
 	},
 	
   downloadDataSets: function() {
     for (var i = 1; i < this.data.length; i++) {
-      this.downloadDataSet(i);
+      downloadAsJson('dataset_' + i, 'raw', JSON.stringify(this.data[i]));
     }
+    downloadAsText('datasets', 'positions', JSON.stringify(plotPositionData));
+    downloadAsText('datasets', 'velocities', JSON.stringify(plotVelocitiesData));
+    downloadAsText('datasets', 'hits', JSON.stringify(plotHitsData));
+    downloadAsText('datasets', 'scatter', JSON.stringify(scatterData));
+    downloadAsText('datasets', 'missed', JSON.stringify(missedData));	
   },
   
 	highlightDataSet: function(num) {
@@ -643,258 +606,6 @@ var fittsTest = {
 			.attr('class', 'active')
 	},
 	
-	updatePlots: function(that) {
-    console.log('updatePlots');
-		// a little I candy :D
-		d3.select('body').append('div')
-			.attr('class', 'msg')
-			.text('updating plots...')
-			.style('opacity', 1)
-			.transition()
-				.duration(2000)
-					.style('opacity', 0)
-					.remove();
-					
-		/* we haven't moven inside the test area, so we can as well disable
-		 * the test for now
-		 */
-		that.active = false;
-
-		// for each data set
-		// compute We and IDe and Throughput for each category
-
-		// process data
-		var dataSetIndex = -1; // evil hack to make it start at 0 then.
-		for (var key in that.data) { // for each data set
-			
-			dataSetIndex++;
-			
-			var groups = [];
-			for (var i = 0; i < that.data[key].data.length; i++) { // for each datum
-				var datum = that.data[key].data[i];
-				var groupID = datum.distance.toString() + datum.width.toString();
-				if (!groups[groupID]) {
-					groups[groupID] = [];
-				}
-				
-				var q = project(datum.start, datum.target, datum.hit);
-				// var x = distance(q, datum.start) * sign(q.t);
-				var y = distance(q, datum.hit) * isLeft(datum.start, datum.target, datum.hit);
-				
-				datum.realDistance = distance(datum.start, datum.hit); // use real distance here.
-				datum.projectedHitOffsetX = distance(q, datum.target) * sign(q.t - 1);
-				datum.projectedHitOffsetY = y;
-				
-				groups[groupID].push(datum);
-			}
-
-			var newData = [];
-			for (var group in groups) {
-				if (groups[group].length < 3) { // exlcude groups with length < 3
-					continue;
-				}
-					
-				var xEffective = 4.133 * Math.sqrt(variance(groups[group], function(d) { return d.projectedHitOffsetX; }))
-				var yEffective = 4.133 * Math.sqrt(variance(groups[group], function(d) { return d.projectedHitOffsetY; }))
-				var dEffective = mean(groups[group], function(d) { return d.realDistance; });
-				
-				for (var i = 0; i < groups[group].length; i++) {
-					var datum = groups[group][i];
-					var We = Math.min(xEffective, yEffective); // SMALLER-OF model (MacKenzie, Buxton 92)
-					var De = dEffective;
-					datum.IDe = shannon(De, We);
-					datum.throughput = 1000 * (datum.IDe/datum.time);
-					newData.push(datum);
-				}
-			}
-			
-			
-			// insert stuff in SVG
-			var colour = that.data[key].colour;
-			
-			var insert = function(d) {
-				d.attr('cx', function(d) { return effScatterX(d.IDe); })
-				.attr('cy', function(d) { return effScatterY(d.time); })
-				.attr('r', 5);
-			}
-			
-			var circles = scatterEffectiveGroup.selectAll('circle.cat' + key)
-				.data(newData);
-			
-			circles.enter()
-				.append('circle')
-					.attr('class', 'cat' + key)
-					.style('fill', colour)
-					.style('opacity', 0.5)
-					.call(insert);
-			
-			circles.transition()
-				.duration(500)
-					.call(insert);
-					
-					
-			// ==================== regression ========================
-			var covTIDe = cov(newData,
-				function(d) { return d.time; },
-				function(d) { return d.IDe});
-			
-			var varIDe = variance(newData, function(d) { return d.IDe; })
-			
-			if (varIDe > 0)
-				var b = covTIDe / varIDe;
-			else
-				var b = 0;
-			
-			var mT = mean(newData, function(d) { return d.time; });
-			var mIDe = mean(newData, function(d) { return d.IDe; });
-			var a = mT - b * mIDe;
-			
-			if (!isNaN(a))
-			{			
-				var makeLine = function(d) {
-					return d
-						.attr('x1', 0)
-						.attr('x2', scatterEffectiveDimension.innerWidth)
-						.attr('y1', function(d) { return effScatterY(d.y1); })
-						.attr('y2', function(d) { return effScatterY(d.y2); })
-				}
-			
-				var regression = scatterEffectiveGroup.selectAll('line.cat' + key)
-					.data([{y1:a + b * 0.5, y2: a + b * 6.5}]);
-			
-				regression.enter().append('line')
-					.attr('class', 'cat' + key)
-					.style('stroke', colour)
-					.style('stroke-width', 2)
-					.call(makeLine);
-			
-				regression.transition()
-					.call(makeLine);
-			}
-				
-
-			// ============== histogram ====================
-			var histThroughput = d3.layout.histogram()
-				.bins(20)
-				.range([0,10])
-				.value(function(d){return d.throughput;})
-				
-			var throughputHistogramData = histThroughput(newData)
-      
-      throughputData = []
-      for (var i = 0; i < throughputHistogramData.length; i++) {
-        throughputData.push([throughputHistogramData[i][x], 
-                             throughputHistogramData[i][y]]);
-      }
-			
-	//		histYMax = d3.max(throughputHistogramData, function(d) { return d.y; });
-						
-			var histX = d3.scale.ordinal()
-				.domain(throughputHistogramData.map(function(d) { return d.x; }))	
-				.rangeRoundBands([0, histDimension.innerWidth]);
-	
-			var histY = d3.scale.linear()
-				.domain([0, d3.max(throughputHistogramData, function(d) { return d.y; })])
-				.range([histDimension.innerHeight, 0]);
-				
-			var throughputRect = throughputGroup.selectAll('rect.cat' + key)
-				.data(throughputHistogramData);
-				
-			
-			var numDataSets = assSize(that.data);
-			var xOffset = (histX.rangeBand() / numDataSets) * dataSetIndex;
-			
-			var makeRect = function(d) {
-				d.attr('x', function(offset) { return function(d) { return (histX(d.x) + offset); }; }(xOffset))
-				.attr('y', function(scale) { return function(d) { return (scale(d.y)); }; }(histY))
-				.attr('width', (histX.rangeBand() / numDataSets) - 1)
-				.attr('height', function(scale) { return function(d) { return (scale(0) - scale(d.y)); }; }(histY));
-			}
-			
-			var histXAxis = d3.svg.axis()
-				.scale(histX)
-				.ticks(2);
-
-			var histYAxis = d3.svg.axis()
-				.scale(histY)
-				.ticks(5)
-			throughputGroup.selectAll("g.axis").remove()	
-			
-			throughputGroup.append("g")
-				.attr("class", "axis")
-				.attr("transform", "translate(0," + histDimension.innerHeight + ")")
-				.call(histXAxis.tickSize(6,3,6).orient("bottom"));	
-	
-			// throughputGroup.append("g")
-				// .attr("class", "axis")
-				// .call(histYAxis.tickSize(-histDimension.innerWidth).orient("left"));
-			
-			throughputRect.enter()
-				.append('rect')
-				.attr('class', 'cat' + key)
-				.attr('rx', 2)
-				.attr('ry', 2)
-				.style('fill', colour)
-				.call(makeRect)
-				
-			throughputRect.transition()
-				.duration(500)
-				.call(makeRect)
-				
-			// ==================== eff position and speed ===================
-			// more or less copy-pasted from above
-			for (var i = 0; i < newData.length; i++)
-			{
-				var last = { x: 0, y: 0, t: newData[i].start.t, v: 0};
-				var A = newData[i].start;
-				var B = newData[i].target
-				var dAB = distance(A, B);
-				var offset = newData[i].distance - dAB;
-				offset = 0;
-								
-				for (var j = 0; j < newData[i].path.length; j++)
-				{
-
-					var p = newData[i].path[j];
-			
-					var q = project(A, B, p);
-					var x = distance(q, A) * sign(q.t);
-					var y = distance(q, p) * isLeft(A, B, p);
-
-					var dt = p.t - last.t;
-					var dist = distance(last, {x: x, y: y});
-					if (dt > 0)
-						var speed = dist / dt;
-					else
-						var speed = 0;
-		
-					positionEffectiveGroup.append('line')
-						.attr('class', 'cat' + key)
-						.attr('x1', effPositionX(last.x + offset))
-						.attr('x2', effPositionX(x + offset))
-						.attr('y1', effPositionY(last.y))
-						.attr('y2', effPositionY(y))
-						.style('stroke', colour)
-						.style('opacity', 0.5);
-			
-					speedEffectiveGroup.append('line')
-						.attr('class', 'cat' + key)
-						.attr('x1', effSpeedX(last.t - A.t))
-						.attr('x2', effSpeedX(p.t - A.t))
-						.attr('y1', effSpeedY(last.v))
-						.attr('y2', effSpeedY(speed))
-						.style('stroke', colour)
-						.style('opacity', 0.5);
-					
-					var last = {}
-					last.x = x;
-					last.y = y;
-					last.t = p.t;
-					last.v = speed;
-				}
-			}
-		}		
-	}
 };
 
 // _empirical_ covariance
