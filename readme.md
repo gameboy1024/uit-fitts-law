@@ -1,3 +1,12 @@
+# Controled test of Fitts' Law
+Original readme file can be found below.
+
+In this version I modified the UI as well as the program that enables this web application to be a controlled test.
+The parameters of the tests can be predefined and a variety kinds of data will be downloaded automatically through the brower when a tester finish his tests. The files are named with data type and time.
+
+I didn't spend a lot of time working on this repo so it's still quite messy. But if anyone is interested, feel free to take reference of what I've done or contact me by gameboy1024@hotmail.com.
+
+
 # Visualising Fitts' Law with D3
 
 Fitts's Law is one of the corner stones of user interface research. Published in 1954, Fitts described the relation between the target distance, width and time needed of a target acquisation task, which later became known as Fitts' law [Fitts 1954].
